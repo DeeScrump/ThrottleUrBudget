@@ -55,3 +55,6 @@ function saveIt(data) {
 
     track.add(data);
 }
+
+// Checking for online status
+window.addEventListener("online", dbCheck);
