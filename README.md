@@ -24,9 +24,8 @@ What are the steps required to install your project? Provide a step-by-step desc
 * Run NPM Start or Node server.js
 
 ## Usage
-
-
 Please see screenshots attached
+![copy of main page](./throttlemain.png)
     
 ## Links for Access to App
 - Github Repository Link:     https://github.com/DeeScrump/ThrottleUrBudget.git
