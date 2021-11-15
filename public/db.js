@@ -1,13 +1,13 @@
 const request = window.indexedDB.open("budget", 1);
 let db;
 
-request.onupgradeneeded = ({ e }) => {
-    let db = e.result;
+request.onupgradeneeded = ({ target }) => {
+    let db = target.result;
     db.createObjectStore("waitForIt", { autoIncrement: true });
 };
 
-request.onsuccess = ({ e }) => {
-    db = e.result;
+request.onsuccess = ({ target }) => {
+    db = target.result;
 
     // This will check if we are online before grabbing db info posted
     if(navigator.onLine) {
@@ -24,7 +24,7 @@ function dbCheck() {
     let transaction = db.transaction(["waitForIt"], "readwrite");
     let track = transaction.objectStore("waitForIt");
 
-    let data = track.data();
+    let data = track.getAll();
 
     data.onsuccess = function() {
         // check that data is not empty and grab it and post it, then remove from cache
@@ -36,8 +36,8 @@ function dbCheck() {
                     "Content-Type":"application/json"
                 }
             })
-            .then(res => {
-                return res.json();
+            .then(response => {
+                return response.json();
             })
             .then(() => {
                 let transaction = db.transaction(["waitForIt"], "readwrite");

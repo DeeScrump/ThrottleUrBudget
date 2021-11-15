@@ -1,7 +1,7 @@
 var CACHE_NAME = "my-site-cache-v5";
 const DATA_CACHE_NAME = "data-cache-v5";
 
-var cachedFiles = [
+var CACHED_FILES = [
   "/",
   "/db.js",
   "/index.js",
@@ -12,71 +12,54 @@ var cachedFiles = [
   "https://cdn.jsdelivr.net/npm/chart.js@2.8.0"
 ];
 
-// Installation life cycle
-self.addEventListener("install", function(e) {
-    // Perform install steps
-    e.waitUntil(
-        caches.open(CACHE_NAME)
-        .then(function(cache) {
-            console.log("Cache is open for business");
-            return cache.addAll(cachedFiles);
-        })
-    );
-    // Waiting life cycle skipped!
-    self.skipWaiting();
-  }
-);
+// Install life cycle
+self.addEventListener("install", function(event) {
+  // Perform install steps
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then(function(cache) {
+      console.log("Your Budget App Cache is Ready!");
+      return cache.addAll(CACHED_FILES)
+      .then(() => self.skipWaiting())
+    })
+  );
+});
 
-// Activation life cycle
-self.addEventListener("activate", function(e) {
-    e.waitUntil(
-        caches.keys().then(keyList => {
-            return Promise.all(
-            keyList.map(key => {
-                if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
-                console.log("Removing old cache data", key);
-                return caches.delete(key);
-                }
-            })
-        );
-      })
-    );
-  
-    self.clients.claim();
-  }
-);
+self.addEventListener("fetch", function(event) {
+  // cache all get requests to /api routes
+  if (event.request.url.includes("/api/")) {
+    event.respondWith(
+      caches.open(DATA_CACHE_NAME).then(cache => {
+        return fetch(event.request)
+          .then(response => {
+            // If the response was good, clone it and store it in the cache.
+            if (response.status === 200) {
+              cache.put(event.request.url, response.clone());
+            }
 
-// fetch
-self.addEventListener("fetch", function(e) {
-    // cache successful requests to the API
-    if (e.req.url.includes("/api/")) {
-      e.respondWith(
-        caches.open(DATA_CACHE_NAME)
-        .then(cache => {
-          return fetch(e.req)
-            .then(res => {
-              // If the response was good, clone it and store it in the cache.
-              if (res.status === 200) {
-                cache.put(e.req.url, res.clone());
-              }
-  
-              return res;
-            })
-            .catch(err => {
-              // Network request failed, try to get it from the cache.
-              return cache.match(e.req);
-            });
-        }).catch(err => console.log(err))
-      );
-  
-      return;
-    }
-  
-
-    e.respondWith(
-      caches.match(e.req).then(function(res) {
-        return res || fetch(e.req);
-      })
+            return response;
+          })
+          .catch(err => {
+            // Network request failed, try to get it from the cache.
+            return cache.match(event.request);
+          });
+      }).catch(err => console.log(err))
     );
+
+    return;
   }
-);
+
+  event.respondWith(
+    fetch(event.request).catch(function() {
+      return caches.match(event.request).then(function(response) {
+        if (response) {
+          return response;
+        } else if (event.request.headers.get("accept").includes("text/html")) {
+          // return the cached home page for all requests for html pages
+          return caches.match("/");
+        }
+      });
+    })
+  );
+});
